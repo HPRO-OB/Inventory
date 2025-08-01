@@ -13,25 +13,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Inject your credentials.json from the secure secret
+      # 1. Inject your Flutter asset (credentials.json) if needed
       - name: Inject credentials.json
+        if: secrets.SERVICE_ACCOUNT_JSON
         run: |
           mkdir -p assets
           echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" > assets/credentials.json
 
+      # 2. Install Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
+      # 3. Fetch Dart deps
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      - name: Build unsigned IPA
+      # 4. Archive the app (no codesigning)
+      - name: Build unsigned archive
         run: flutter build ipa --no-codesign
 
+      # 5. Package the .app into a .ipa
+      - name: Package unsigned IPA
+        run: |
+          # create Payload folder and copy .app
+          mkdir -p build/ios/ipa/Payload
+          cp -R build/Runner.xcarchive/Products/Applications/Runner.app \
+               build/ios/ipa/Payload/
+          # zip into Runner.ipa
+          cd build/ios/ipa
+          zip -qr Runner.ipa Payload
+
+      # 6. Upload the unsigned IPA artifact
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
           name: unsigned-runner-ipa
-          path: build/ios/ipa/*.ipa
+          path: build/ios/ipa/Runner.ipa
