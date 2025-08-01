@@ -7,42 +7,40 @@ on:
 
 jobs:
   ios:
-    name: Build unsigned IPA
     runs-on: macos-latest
 
     steps:
-      # 1. Check out your code
       - uses: actions/checkout@v4
 
-      # 2. Inject credentials.json into assets/
       - name: Inject credentials.json
         run: |
           mkdir -p assets
           echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" > assets/credentials.json
 
-      # 3. Set up Flutter
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
           channel: stable
 
-      # 4. Get Dart/Flutter dependencies
       - name: Get Flutter dependencies
         run: flutter pub get
 
-      # 5. Build an unsigned IPA
       - name: Build unsigned IPA
         run: flutter build ipa --no-codesign
 
-      # 6. Package the .app into an .ipa
       - name: Package unsigned IPA
         run: |
+          if [ -d build/Runner.xcarchive ]; then
+            ARCHIVE_PATH=build/Runner.xcarchive
+          else
+            ARCHIVE_PATH=build/ios/archive/Runner.xcarchive
+          fi
+          echo "Using archive at $ARCHIVE_PATH"
           mkdir -p build/ios/ipa/Payload
-          cp -R build/Runner.xcarchive/Products/Applications/Runner.app build/ios/ipa/Payload/
+          cp -R "$ARCHIVE_PATH/Products/Applications/Runner.app" build/ios/ipa/Payload/
           cd build/ios/ipa
           zip -qr Runner.ipa Payload
 
-      # 7. Upload the unsigned IPA as an artifact
       - name: Upload unsigned IPA
         uses: actions/upload-artifact@v4
         with:
