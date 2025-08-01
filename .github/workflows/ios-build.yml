@@ -13,6 +13,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Inject your credentials.json from the secure secret
+      - name: Inject credentials.json
+        run: |
+          mkdir -p assets
+          echo "${{ secrets.SERVICE_ACCOUNT_JSON }}" > assets/credentials.json
+
       - name: Set up Flutter
         uses: subosito/flutter-action@v2
         with:
